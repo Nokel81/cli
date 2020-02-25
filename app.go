@@ -41,6 +41,8 @@ type App struct {
 	Commands []*Command
 	// List of flags to parse
 	Flags []Flag
+	// List of arguments to parse after parsing flags
+	Args []ArgSpec
 	// Boolean to enable bash completion commands
 	EnableBashCompletion bool
 	// Boolean to hide built-in help command

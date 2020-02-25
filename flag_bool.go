@@ -104,3 +104,64 @@ func lookupBool(name string, set *flag.FlagSet) bool {
 	}
 	return false
 }
+
+type BoolArg struct {
+	Name        string
+	Usage       string
+	Required    bool
+	Value       bool
+	Destination *bool
+}
+
+func (a *BoolArg) String() string {
+	if a.Required {
+		return fmt.Sprintf("[%s]", a.Name)
+	} else {
+		return fmt.Sprintf("<%s>", a.Name)
+	}
+}
+
+func (a *BoolArg) Parse(set *flag.FlagSet, values []string) error {
+	if len(values) == 0 {
+		if a.Required {
+			return fmt.Errorf("no value provided for required bool arg %q", a.Name)
+		}
+
+		return nil
+	}
+
+	if len(values) > 1 {
+		return fmt.Errorf("too many values provided for required bool arg %q", a.Name)
+	}
+
+	val := values[0]
+	valBool, err := strconv.ParseBool(val)
+	if err != nil {
+		return fmt.Errorf("could not parse %q as bool value for flag %s: %s", val, a.Name, err)
+	}
+
+	a.Value = valBool
+	if a.Destination != nil {
+		set.BoolVar(a.Destination, a.Name, a.Value, a.Usage)
+	} else {
+		set.Bool(a.Name, a.Value, a.Usage)
+	}
+
+	return nil
+}
+
+func (a *BoolArg) AccessName() string {
+	return a.Name
+}
+
+func (a *BoolArg) IsRequired() bool {
+	return a.Required
+}
+
+func (a *BoolArg) IsSlice() bool {
+	return false
+}
+
+func (a *BoolArg) MaxLength() int {
+	return 0
+}

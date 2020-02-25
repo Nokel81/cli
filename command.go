@@ -21,6 +21,8 @@ type Command struct {
 	Description string
 	// A short description of the arguments of this command
 	ArgsUsage string
+	// List of arguments to parse after parsing flags
+	Args []ArgSpec
 	// The category the command is part of
 	Category string
 	// The function to call when checking for bash command completions
@@ -101,6 +103,10 @@ func (c *Command) Run(ctx *Context) (err error) {
 	}
 
 	set, err := c.parseFlags(ctx.Args(), ctx.shellComplete)
+
+	if err == nil {
+		err = c.parseArgs(set, ctx.Args())
+	}
 
 	context := NewContext(ctx.App, set, ctx)
 	context.Command = c
@@ -195,6 +201,35 @@ func (c *Command) parseFlags(args Args, shellComplete bool) (*flag.FlagSet, erro
 	}
 
 	return set, nil
+}
+
+func (c *Command) parseArgs(set *flag.FlagSet, args Args) error {
+	if len(c.Args) == 0 {
+		return nil
+	}
+
+	info, err := verifyArgSpec(c.Args)
+	if err != nil {
+		return err
+	}
+
+	if info.reqArgs > args.Len() {
+		last := info.req[len(info.req)-1]
+		requiredNumber := info.reqArgs
+		if last.IsSlice() {
+			requiredNumber = requiredNumber - last.MaxLength() + 1
+		}
+
+		if requiredNumber > args.Len() {
+			return fmt.Errorf("%d args are required, provided %d args", requiredNumber, args.Len())
+		}
+	}
+
+	if !info.unlimOptArgs && info.maxOptArgs+info.reqArgs < args.Len() {
+		return fmt.Errorf(`%d args are specified. %d provided, therefore %d unaccounted for.`, info.maxOptArgs+info.reqArgs, args.Len(), args.Len()-(info.maxOptArgs+info.reqArgs))
+	}
+
+	return parseArgs(set, info, args.Tail())
 }
 
 // Names returns the names including short names and aliases.

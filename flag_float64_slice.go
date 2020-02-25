@@ -161,3 +161,56 @@ func lookupFloat64Slice(name string, set *flag.FlagSet) []float64 {
 	}
 	return nil
 }
+
+type Float64SliceArg struct {
+	Name     string
+	Usage    string
+	Required bool
+	Value    *Float64Slice
+	Max      int
+}
+
+func (a *Float64SliceArg) String() string {
+	if a.Required {
+		return fmt.Sprintf("[%s]", a.Name)
+	} else {
+		return fmt.Sprintf("<%s>", a.Name)
+	}
+}
+
+func (a *Float64SliceArg) Parse(set *flag.FlagSet, values []string) error {
+	if len(values) == 0 {
+		if a.Required {
+			return fmt.Errorf("no value provided for required []float64 arg %q", a.Name)
+		}
+
+		return nil
+	}
+
+	a.Value = &Float64Slice{}
+
+	for _, val := range values {
+		if err := a.Value.Set(strings.TrimSpace(val)); err != nil {
+			return fmt.Errorf("could not parse %v as float64 slice value for arg %s: %s", values, a.Name, err)
+		}
+	}
+
+	set.Var(a.Value, a.Name, a.Usage)
+	return nil
+}
+
+func (a *Float64SliceArg) AccessName() string {
+	return a.Name
+}
+
+func (a *Float64SliceArg) IsRequired() bool {
+	return a.Required
+}
+
+func (a *Float64SliceArg) IsSlice() bool {
+	return true
+}
+
+func (a *Float64SliceArg) MaxLength() int {
+	return a.Max
+}

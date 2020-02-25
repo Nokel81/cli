@@ -103,3 +103,64 @@ func lookupDuration(name string, set *flag.FlagSet) time.Duration {
 	}
 	return 0
 }
+
+type DurationArg struct {
+	Name        string
+	Usage       string
+	Required    bool
+	Value       time.Duration
+	Destination *time.Duration
+}
+
+func (a *DurationArg) String() string {
+	if a.Required {
+		return fmt.Sprintf("[%s]", a.Name)
+	} else {
+		return fmt.Sprintf("<%s>", a.Name)
+	}
+}
+
+func (a *DurationArg) Parse(set *flag.FlagSet, values []string) error {
+	if len(values) == 0 {
+		if a.Required {
+			return fmt.Errorf("no value provided for required time.Duration arg %q", a.Name)
+		}
+
+		return nil
+	}
+
+	if len(values) > 1 {
+		return fmt.Errorf("too many values provided for required time.Duration arg %q", a.Name)
+	}
+
+	val := values[0]
+	valDuration, err := time.ParseDuration(val)
+	if err != nil {
+		return fmt.Errorf("could not parse %q as time.Duration value for flag %s: %s", val, a.Name, err)
+	}
+
+	a.Value = valDuration
+	if a.Destination != nil {
+		set.DurationVar(a.Destination, a.Name, a.Value, a.Usage)
+	} else {
+		set.Duration(a.Name, a.Value, a.Usage)
+	}
+
+	return nil
+}
+
+func (a *DurationArg) AccessName() string {
+	return a.Name
+}
+
+func (a *DurationArg) IsRequired() bool {
+	return a.Required
+}
+
+func (a *DurationArg) IsSlice() bool {
+	return false
+}
+
+func (a *DurationArg) MaxLength() int {
+	return 0
+}
